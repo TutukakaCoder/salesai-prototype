@@ -32,22 +32,16 @@ const buyerSchema = baseSchema.extend({
   budget: z.number().min(0, 'Budget must be a positive number'),
 });
 
-const schema = z.discriminatedUnion('userType', [
-  introducerSchema,
-  vendorSchema,
-  buyerSchema,
-]);
-
 export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
   const [step, setStep] = useState(1);
-  const { register, handleSubmit, formState: { errors }, watch } = useForm({
-    resolver: zodResolver(schema),
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+    resolver: zodResolver(baseSchema),
   });
 
   const watchUserType = watch('userType');
 
   const renderErrorMessage = (error: FieldError | undefined) => {
-    return error ? <p className="mt-2 text-sm text-red-600">{error.message}</p> : null;
+    return error ? <p className="mt-1 text-sm text-red-600">{error.message}</p> : null;
   };
 
   const renderStep = () => {
@@ -192,35 +186,24 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
     }
   };
 
+  const onSubmitForm = (data: Record<string, unknown>) => {
+    if (step === 1) {
+      setStep(2);
+    } else {
+      onSubmit(data);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
       {renderStep()}
-      <div className="flex justify-between">
-        {step > 1 && (
-          <button
-            type="button"
-            onClick={() => setStep(step - 1)}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
-          >
-            Previous
-          </button>
-        )}
-        {step < 2 ? (
-          <button
-            type="button"
-            onClick={() => setStep(step + 1)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          >
-            Next
-          </button>
-        ) : (
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
-          >
-            Submit
-          </button>
-        )}
+      <div>
+        <button
+          type="submit"
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          {step === 1 ? 'Next' : 'Submit'}
+        </button>
       </div>
     </form>
   );

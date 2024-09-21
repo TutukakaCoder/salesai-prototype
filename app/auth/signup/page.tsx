@@ -12,8 +12,8 @@ export default function SignUp() {
   const [userType, setUserType] = useState('Introducer');
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | { [key: string]: unknown }) => {
-    if ('preventDefault' in e && typeof e.preventDefault === 'function') {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | Record<string, unknown>) => {
+    if ('preventDefault' in e) {
       e.preventDefault();
     }
     
