@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 type OnboardingFormProps = {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Record<string, unknown>) => void;
 };
 
 const baseSchema = z.object({
@@ -15,8 +15,8 @@ const baseSchema = z.object({
 });
 
 const introducerSchema = baseSchema.extend({
-  expertise: z.array(z.string()).min(1, 'Please select at least one area of expertise'),
-  industries: z.array(z.string()).min(1, 'Please select at least one industry'),
+  expertise: z.array(z.string()).min(1, 'Please specify at least one area of expertise'),
+  industries: z.array(z.string()).min(1, 'Please specify at least one industry'),
 });
 
 const vendorSchema = baseSchema.extend({

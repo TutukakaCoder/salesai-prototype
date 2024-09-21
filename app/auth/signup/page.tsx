@@ -12,12 +12,12 @@ export default function SignUp() {
   const [userType, setUserType] = useState('Introducer');
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent | any) => {
-    if (e.preventDefault) {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | { [key: string]: unknown }) => {
+    if ('preventDefault' in e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
     
-    const data = e.target ? {
+    const data = 'target' in e ? {
       name,
       email,
       password,
@@ -33,8 +33,8 @@ export default function SignUp() {
     if (response.ok) {
       const result = await signIn('credentials', {
         redirect: false,
-        email: data.email,
-        password: data.password,
+        email: data.email as string,
+        password: data.password as string,
       });
       if (result?.ok) {
         router.push('/dashboard');
@@ -45,8 +45,6 @@ export default function SignUp() {
     }
   };
 
-  // Rest of the component remains the same
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -56,7 +54,7 @@ export default function SignUp() {
           </h2>
         </div>
         <OnboardingForm onSubmit={handleSubmit} />
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit as (e: React.FormEvent<HTMLFormElement>) => void}>
           <input type="hidden" name="remember" defaultValue="true" />
           <div className="rounded-md shadow-sm -space-y-px">
             <div>

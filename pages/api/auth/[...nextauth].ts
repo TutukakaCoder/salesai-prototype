@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions, User as NextAuthUser } from 'next-auth';
+import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
 import clientPromise from '../../../lib/mongodb';
@@ -82,3 +82,5 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
   },
 };
+
+export default authOptions;
