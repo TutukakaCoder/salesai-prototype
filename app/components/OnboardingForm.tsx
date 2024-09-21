@@ -14,31 +14,28 @@ const baseSchema = z.object({
   userType: z.enum(['Introducer', 'Vendor', 'Buyer']),
 });
 
-const schema = z.discriminatedUnion('userType', [
-  z.object({
-    userType: z.literal('Introducer'),
-    expertise: z.array(z.string()).min(1, 'Please specify at least one area of expertise'),
-    industries: z.array(z.string()).min(1, 'Please specify at least one industry'),
-  }),
-  z.object({
-    userType: z.literal('Vendor'),
-    company: z.string().min(2, 'Company name must be at least 2 characters'),
-    products: z.array(z.string()).optional(),
-    services: z.array(z.string()).optional(),
-    commissionRates: z.record(z.number().min(0).max(100)),
-  }),
-  z.object({
-    userType: z.literal('Buyer'),
-    company: z.string().min(2, 'Company name must be at least 2 characters'),
-    requirements: z.array(z.string()).min(1, 'Please specify at least one requirement'),
-    budget: z.number().min(0, 'Budget must be a positive number'),
-  }),
-]).and(baseSchema);
+const introducerSchema = baseSchema.extend({
+  expertise: z.array(z.string()).min(1, 'Please specify at least one area of expertise'),
+  industries: z.array(z.string()).min(1, 'Please specify at least one industry'),
+});
+
+const vendorSchema = baseSchema.extend({
+  company: z.string().min(2, 'Company name must be at least 2 characters'),
+  products: z.array(z.string()).optional(),
+  services: z.array(z.string()).optional(),
+  commissionRates: z.record(z.number().min(0).max(100)),
+});
+
+const buyerSchema = baseSchema.extend({
+  company: z.string().min(2, 'Company name must be at least 2 characters'),
+  requirements: z.array(z.string()).min(1, 'Please specify at least one requirement'),
+  budget: z.number().min(0, 'Budget must be a positive number'),
+});
 
 export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
   const [step, setStep] = useState(1);
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(baseSchema),
   });
 
   const watchUserType = watch('userType');
@@ -58,7 +55,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                 {...register('name')}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-              {renderErrorMessage(errors.name)}
+              {renderErrorMessage(errors.name as FieldError)}
             </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
@@ -66,7 +63,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                 {...register('email')}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-              {renderErrorMessage(errors.email)}
+              {renderErrorMessage(errors.email as FieldError)}
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
@@ -75,7 +72,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                 type="password"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-              {renderErrorMessage(errors.password)}
+              {renderErrorMessage(errors.password as FieldError)}
             </div>
             <div>
               <label htmlFor="userType" className="block text-sm font-medium text-gray-700">User Type</label>
@@ -87,7 +84,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                 <option value="Vendor">Vendor</option>
                 <option value="Buyer">Buyer</option>
               </select>
-              {renderErrorMessage(errors.userType)}
+              {renderErrorMessage(errors.userType as FieldError)}
             </div>
           </>
         );
@@ -102,7 +99,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     {...register('expertise')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.expertise)}
+                  {renderErrorMessage(errors.expertise as FieldError)}
                 </div>
                 <div>
                   <label htmlFor="industries" className="block text-sm font-medium text-gray-700">Industries</label>
@@ -110,7 +107,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     {...register('industries')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.industries)}
+                  {renderErrorMessage(errors.industries as FieldError)}
                 </div>
               </>
             );
@@ -123,7 +120,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     {...register('company')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.company)}
+                  {renderErrorMessage(errors.company as FieldError)}
                 </div>
                 <div>
                   <label htmlFor="products" className="block text-sm font-medium text-gray-700">Products</label>
@@ -131,7 +128,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     {...register('products')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.products)}
+                  {renderErrorMessage(errors.products as FieldError)}
                 </div>
                 <div>
                   <label htmlFor="services" className="block text-sm font-medium text-gray-700">Services</label>
@@ -139,7 +136,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     {...register('services')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.services)}
+                  {renderErrorMessage(errors.services as FieldError)}
                 </div>
                 <div>
                   <label htmlFor="commissionRates" className="block text-sm font-medium text-gray-700">Commission Rates</label>
@@ -147,7 +144,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     {...register('commissionRates')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.commissionRates)}
+                  {renderErrorMessage(errors.commissionRates as FieldError)}
                 </div>
               </>
             );
@@ -160,7 +157,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     {...register('company')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.company)}
+                  {renderErrorMessage(errors.company as FieldError)}
                 </div>
                 <div>
                   <label htmlFor="requirements" className="block text-sm font-medium text-gray-700">Requirements</label>
@@ -168,7 +165,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     {...register('requirements')}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.requirements)}
+                  {renderErrorMessage(errors.requirements as FieldError)}
                 </div>
                 <div>
                   <label htmlFor="budget" className="block text-sm font-medium text-gray-700">Budget</label>
@@ -177,7 +174,7 @@ export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     type="number"
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  {renderErrorMessage(errors.budget)}
+                  {renderErrorMessage(errors.budget as FieldError)}
                 </div>
               </>
             );
