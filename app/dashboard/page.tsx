@@ -1,3 +1,5 @@
+'use client';
+
 import { withAuth } from '../../lib/withAuth';
 
 function Dashboard() {

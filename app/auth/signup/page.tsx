@@ -1,5 +1,7 @@
+'use client';
+
 import { useState } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import OnboardingForm from '../../components/OnboardingForm';
 
@@ -42,6 +44,8 @@ export default function SignUp() {
       console.error('Sign up failed');
     }
   };
+
+  // Rest of the component remains the same
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

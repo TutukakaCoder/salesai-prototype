@@ -1,5 +1,7 @@
+'use client';
+
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { ComponentType } from 'react';
 
 export function withAuth<P extends object>(WrappedComponent: ComponentType<P>) {
@@ -11,7 +13,7 @@ export function withAuth<P extends object>(WrappedComponent: ComponentType<P>) {
       return <p>Loading...</p>;
     }
 
-    if (status === 'unauthenticated') {
+    if (!session) {
       router.push('/auth/signin');
       return null;
     }
