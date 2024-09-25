@@ -1,238 +1,210 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
+import { UserType } from '@/models/User';
 
-type OnboardingFormProps = {
-  onSubmit: (data: FormData) => void;
-};
-
-const baseSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
-
-const introducerSchema = baseSchema.extend({
-  userType: z.literal('Introducer'),
-  expertise: z.array(z.string()).min(1, 'Please specify at least one area of expertise'),
-  industries: z.array(z.string()).min(1, 'Please specify at least one industry'),
-});
-
-const vendorSchema = baseSchema.extend({
-  userType: z.literal('Vendor'),
-  company: z.string().min(2, 'Company name must be at least 2 characters'),
-  products: z.array(z.string()).optional(),
-  services: z.array(z.string()).optional(),
-  commissionRates: z.record(z.number().min(0).max(100)),
-});
-
-const buyerSchema = baseSchema.extend({
-  userType: z.literal('Buyer'),
-  company: z.string().min(2, 'Company name must be at least 2 characters'),
-  requirements: z.array(z.string()).min(1, 'Please specify at least one requirement'),
-  budget: z.number().min(0, 'Budget must be a positive number'),
-});
-
-const formSchema = z.discriminatedUnion('userType', [
-  introducerSchema,
-  vendorSchema,
-  buyerSchema,
-]);
-
-type FormData = z.infer<typeof formSchema>;
-
-type IntroducerFields = {
-  expertise: string[];
-  industries: string[];
-};
-
-type VendorFields = {
+interface FormData {
+  name: string;
+  email: string;
+  userType: UserType;
   company: string;
+  companySize: number;
+  foundingDate: string;
+  location: string;
+  expertise?: string[];
+  industries?: string[];
   products?: string[];
   services?: string[];
-  commissionRates: Record<string, number>;
-};
+  commissionRate?: number;
+  requirements?: string;
+  budget?: number;
+}
 
-type BuyerFields = {
-  company: string;
-  requirements: string[];
-  budget: number;
-};
+interface OnboardingFormProps {
+  initialUserType: UserType;
+}
 
-export default function OnboardingForm({ onSubmit }: OnboardingFormProps) {
+export default function OnboardingForm({ initialUserType }: OnboardingFormProps) {
   const [step, setStep] = useState(1);
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const { register, handleSubmit, watch } = useForm<FormData>({
+    defaultValues: {
+      userType: initialUserType,
+    },
   });
+  const router = useRouter();
 
-  const watchUserType = watch('userType');
+  const userType = watch('userType');
 
-  const renderErrorMessage = (fieldName: keyof FormData | keyof IntroducerFields | keyof VendorFields | keyof BuyerFields) => {
-    const error = errors[fieldName as keyof FormData];
-    return error ? <p className="mt-1 text-sm text-red-600">{error.message}</p> : null;
-  };
+  const onSubmit = async (data: FormData) => {
+    console.log(data);
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <>
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
-              <input
-                {...register('name')}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              {renderErrorMessage('name')}
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                {...register('email')}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              {renderErrorMessage('email')}
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                {...register('password')}
-                type="password"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              {renderErrorMessage('password')}
-            </div>
-            <div>
-              <label htmlFor="userType" className="block text-sm font-medium text-gray-700">User Type</label>
-              <select
-                {...register('userType')}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="Introducer">Introducer</option>
-                <option value="Vendor">Vendor</option>
-                <option value="Buyer">Buyer</option>
-              </select>
-            </div>
-          </>
-        );
-      case 2:
-        switch (watchUserType) {
-          case 'Introducer':
-            return (
-              <>
-                <div>
-                  <label htmlFor="expertise" className="block text-sm font-medium text-gray-700">Expertise</label>
-                  <input
-                    {...register('expertise')}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('expertise')}
-                </div>
-                <div>
-                  <label htmlFor="industries" className="block text-sm font-medium text-gray-700">Industries</label>
-                  <input
-                    {...register('industries')}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('industries')}
-                </div>
-              </>
-            );
-          case 'Vendor':
-            return (
-              <>
-                <div>
-                  <label htmlFor="company" className="block text-sm font-medium text-gray-700">Company</label>
-                  <input
-                    {...register('company')}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('company')}
-                </div>
-                <div>
-                  <label htmlFor="products" className="block text-sm font-medium text-gray-700">Products</label>
-                  <input
-                    {...register('products')}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('products')}
-                </div>
-                <div>
-                  <label htmlFor="services" className="block text-sm font-medium text-gray-700">Services</label>
-                  <input
-                    {...register('services')}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('services')}
-                </div>
-                <div>
-                  <label htmlFor="commissionRates" className="block text-sm font-medium text-gray-700">Commission Rates</label>
-                  <input
-                    {...register('commissionRates')}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('commissionRates')}
-                </div>
-              </>
-            );
-          case 'Buyer':
-            return (
-              <>
-                <div>
-                  <label htmlFor="company" className="block text-sm font-medium text-gray-700">Company</label>
-                  <input
-                    {...register('company')}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('company')}
-                </div>
-                <div>
-                  <label htmlFor="requirements" className="block text-sm font-medium text-gray-700">Requirements</label>
-                  <input
-                    {...register('requirements')}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('requirements')}
-                </div>
-                <div>
-                  <label htmlFor="budget" className="block text-sm font-medium text-gray-700">Budget</label>
-                  <input
-                    {...register('budget', { valueAsNumber: true })}
-                    type="number"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  {renderErrorMessage('budget')}
-                </div>
-              </>
-            );
-          default:
-            return null;
-        }
-      default:
-        return null;
+      if (response.ok) {
+        router.push('/dashboard');
+      } else {
+        console.error('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
     }
   };
 
-  const onSubmitForm = (data: FormData) => {
-    if (step === 1) {
-      setStep(2);
-    } else {
-      onSubmit(data);
-    }
+  const nextStep = () => setStep(step + 1);
+  const prevStep = () => setStep(step - 1);
+
+  const skipOnboarding = () => {
+    router.push('/dashboard');
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
-      {renderStep()}
-      <div>
-        <button
-          type="submit"
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          {step === 1 ? 'Next' : 'Submit'}
-        </button>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {step === 1 && (
+        <>
+          <h2 className="text-2xl font-bold mb-4">Basic Information</h2>
+          <div>
+            <label htmlFor="company" className="block text-sm font-medium text-gray-700">Company Name</label>
+            <input
+              {...register('company')}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="companySize" className="block text-sm font-medium text-gray-700">Company Size</label>
+            <input
+              {...register('companySize', { valueAsNumber: true })}
+              type="number"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="foundingDate" className="block text-sm font-medium text-gray-700">Founding Date</label>
+            <input
+              {...register('foundingDate')}
+              type="date"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-gray-700">Location</label>
+            <input
+              {...register('location')}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </>
+      )}
+
+      {step === 2 && userType === 'Introducer' && (
+        <>
+          <h2 className="text-2xl font-bold mb-4">Introducer Details</h2>
+          <div>
+            <label htmlFor="expertise" className="block text-sm font-medium text-gray-700">Expertise (comma-separated)</label>
+            <input
+              {...register('expertise')}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="industries" className="block text-sm font-medium text-gray-700">Industries (comma-separated)</label>
+            <input
+              {...register('industries')}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </>
+      )}
+
+      {step === 2 && userType === 'Vendor' && (
+        <>
+          <h2 className="text-2xl font-bold mb-4">Vendor Details</h2>
+          <div>
+            <label htmlFor="products" className="block text-sm font-medium text-gray-700">Products (comma-separated)</label>
+            <input
+              {...register('products')}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="services" className="block text-sm font-medium text-gray-700">Services (comma-separated)</label>
+            <input
+              {...register('services')}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="commissionRate" className="block text-sm font-medium text-gray-700">Commission Rate (%)</label>
+            <input
+              {...register('commissionRate', { valueAsNumber: true })}
+              type="number"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </>
+      )}
+
+      {step === 2 && userType === 'Buyer' && (
+        <>
+          <h2 className="text-2xl font-bold mb-4">Buyer Details</h2>
+          <div>
+            <label htmlFor="requirements" className="block text-sm font-medium text-gray-700">Requirements</label>
+            <textarea
+              {...register('requirements')}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              rows={4}
+            ></textarea>
+          </div>
+          <div>
+            <label htmlFor="budget" className="block text-sm font-medium text-gray-700">Budget</label>
+            <input
+              {...register('budget', { valueAsNumber: true })}
+              type="number"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </>
+      )}
+
+      <div className="flex justify-between">
+        {step > 1 && (
+          <button
+            type="button"
+            onClick={prevStep}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Previous
+          </button>
+        )}
+        {step < 2 ? (
+          <button
+            type="button"
+            onClick={nextStep}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Next
+          </button>
+        ) : (
+          <button
+            type="submit"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Submit
+          </button>
+        )}
       </div>
+      <button
+        type="button"
+        onClick={skipOnboarding}
+        className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+      >
+        Skip Onboarding
+      </button>
     </form>
   );
 }

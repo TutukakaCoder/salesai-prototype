@@ -1,86 +1,73 @@
-import { NextAuthOptions } from 'next-auth';
+import NextAuth, { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
-import clientPromise from '../../../lib/mongodb';
+import { connectToDatabase } from '@/lib/mongodb';
 import { compare } from 'bcryptjs';
-import UserModel from '../../../models/User';  // Renamed import
+import UserModel from '@/models/User';
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      userType: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    }
-  }
-  interface User {
-    id: string;
-    userType: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  }
+interface ExtendedUser extends User {
+  id: string;
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise),
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "text" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error('Email and password are required');
         }
 
+        await connectToDatabase();
         const user = await UserModel.findOne({ email: credentials.email });
+        console.log('User found:', user);
 
         if (!user) {
-          return null;
+          throw new Error('No user found with this email');
+        }
+
+        if (!user.password) {
+          console.log('User password is not set');
+          throw new Error('User password is not set');
         }
 
         const isPasswordValid = await compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
-          return null;
+          throw new Error('Invalid password');
         }
 
         return {
           id: user._id.toString(),
           email: user.email,
           name: user.name,
-          userType: user.userType,
         };
       }
     })
   ],
   session: {
-    strategy: "jwt",
+    strategy: 'jwt' as const,
+  },
+  pages: {
+    signIn: '/auth/signin',
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.userType = user.userType;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.userType = token.userType as string;
+        (session.user as ExtendedUser).id = token.id as string;
       }
       return session;
     },
   },
-  pages: {
-    signIn: '/auth/signin',
-  },
 };
 
-export default authOptions;
+export default NextAuth(authOptions);

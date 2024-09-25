@@ -3,10 +3,10 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import DashboardContent from '../components/DashboardContent';
+import OnboardingForm from '../components/OnboardingForm';
 import { UserType } from '@/models/User';
 
-export default function Dashboard() {
+export default function Onboarding() {
   const { status } = useSession();
   const router = useRouter();
   const [userType, setUserType] = useState<UserType | null>(null);
@@ -36,12 +36,17 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-indigo-600">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
-          <DashboardContent userType={userType} />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-600 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-0 left-0 m-8">
+        <h1 className="text-white text-3xl font-bold">Sales AI</h1>
+      </div>
+      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Complete Your Profile
+          </h2>
         </div>
+        <OnboardingForm initialUserType={userType} />
       </div>
     </div>
   );

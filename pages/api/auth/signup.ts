@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { connectToDatabase } from '@/lib/mongodb';
 import { hash } from 'bcryptjs';
-import UserModel from '../../../models/User';
+import UserModel from '@/models/User';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -8,58 +9,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { name, email, password, userType, ...additionalData } = req.body;
+    const { name, email, password, userType } = req.body;
 
-    // Check if user already exists
+    if (!name || !email || !password || !userType) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    await connectToDatabase();
+
     const existingUser = await UserModel.findOne({ email });
     if (existingUser) {
       return res.status(422).json({ message: 'User already exists' });
     }
 
-    // Hash password
     const hashedPassword = await hash(password, 12);
+    console.log('Hashed password:', hashedPassword);
 
-    // Process additional data based on user type
-    let processedData = {};
-    if (userType === 'Introducer') {
-      processedData = {
-        expertise: additionalData.expertise.split(',').map((item: string) => item.trim()),
-        industries: additionalData.industries.split(',').map((item: string) => item.trim()),
-      };
-    } else if (userType === 'Vendor') {
-      processedData = {
-        company: additionalData.company,
-        products: additionalData.products.split(',').map((item: string) => item.trim()),
-        services: additionalData.services.split(',').map((item: string) => item.trim()),
-        commissionRates: Object.fromEntries(
-          additionalData.commissionRates.split(',').map((item: string) => {
-            const [key, value] = item.split(':');
-            return [key.trim(), parseFloat(value.trim())];
-          })
-        ),
-      };
-    } else if (userType === 'Buyer') {
-      processedData = {
-        company: additionalData.company,
-        requirements: additionalData.requirements.split(',').map((item: string) => item.trim()),
-        budget: parseFloat(additionalData.budget),
-      };
-    }
-
-    // Create new user
-    const user = new UserModel({
+    const newUser = new UserModel({
       name,
       email,
       password: hashedPassword,
       userType,
-      ...processedData,
+      company: 'Default Company',
+      companySize: 1,
+      foundingDate: new Date(),
+      location: 'Default Location',
     });
 
-    await user.save();
+    const savedUser = await newUser.save();
+    console.log('Saved user:', savedUser);
 
-    res.status(201).json({ message: 'User created successfully' });
+    return res.status(201).json({ message: 'User created', userId: savedUser._id });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Signup error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 }
