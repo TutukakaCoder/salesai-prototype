@@ -1,47 +1,34 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose from 'mongoose';
 
-export type UserType = 'Introducer' | 'Vendor' | 'Buyer';
-
-export interface IUser extends Document {
+export interface IUser extends mongoose.Document {
   name: string;
   email: string;
   password: string;
-  userType: UserType;
-  company: string;
-  companySize: number;
-  foundingDate: Date;
-  location: string;
-  description?: string;
-  website?: string;
-  socialMediaProfiles?: string[];
-  expertise?: string[];
-  industries?: string[];
-  products?: string[];
-  services?: string[];
-  commissionRate?: number;
-  requirements?: string;
-  budget?: number;
+  userType: 'introducer' | 'vendor' | 'buyer';
 }
 
-const UserSchema: Schema = new Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  userType: { type: String, enum: ['Introducer', 'Vendor', 'Buyer'], required: true },
-  company: { type: String, required: true },
-  companySize: { type: Number, required: true },
-  foundingDate: { type: Date, required: true },
-  location: { type: String, required: true },
-  description: { type: String },
-  website: { type: String },
-  socialMediaProfiles: [{ type: String }],
-  expertise: [{ type: String }],
-  industries: [{ type: String }],
-  products: [{ type: String }],
-  services: [{ type: String }],
-  commissionRate: { type: Number },
-  requirements: { type: String },
-  budget: { type: Number },
+const UserSchema = new mongoose.Schema<IUser>({
+  name: {
+    type: String,
+    required: [true, 'Please provide a name'],
+    maxlength: [60, 'Name cannot be more than 60 characters'],
+  },
+  email: {
+    type: String,
+    required: [true, 'Please provide an email'],
+    unique: true,
+    lowercase: true,
+  },
+  password: {
+    type: String,
+    required: [true, 'Please provide a password'],
+    minlength: [6, 'Password must be at least 6 characters'],
+  },
+  userType: {
+    type: String,
+    enum: ['introducer', 'vendor', 'buyer'],
+    default: 'buyer',
+  },
 }, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

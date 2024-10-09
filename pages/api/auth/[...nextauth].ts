@@ -1,11 +1,11 @@
-import NextAuth, { NextAuthOptions, User } from 'next-auth';
+import NextAuth, { NextAuthOptions, User as NextAuthUser } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { connectToDatabase } from '@/lib/mongodb';
-import { compare } from 'bcryptjs';
-import UserModel from '@/models/User';
+import bcrypt from 'bcryptjs';
+import dbConnect from '@/lib/dbConnect';
+import User from '@/models/User';
 
-interface ExtendedUser extends User {
-  id: string;
+interface ExtendedUser extends NextAuthUser {
+  userType?: string;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -13,60 +13,56 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required');
+          return null;
         }
 
-        await connectToDatabase();
-        const user = await UserModel.findOne({ email: credentials.email });
-        console.log('User found:', user);
+        await dbConnect();
+
+        const user = await User.findOne({ email: credentials.email });
 
         if (!user) {
-          throw new Error('No user found with this email');
+          return null;
         }
 
-        if (!user.password) {
-          console.log('User password is not set');
-          throw new Error('User password is not set');
-        }
+        const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
 
-        const isPasswordValid = await compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          throw new Error('Invalid password');
+        if (!isPasswordCorrect) {
+          return null;
         }
 
         return {
           id: user._id.toString(),
           email: user.email,
           name: user.name,
+          userType: user.userType,
         };
       }
     })
   ],
-  session: {
-    strategy: 'jwt' as const,
-  },
-  pages: {
-    signIn: '/auth/signin',
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.userType = (user as ExtendedUser).userType;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as ExtendedUser).id = token.id as string;
+        (session.user as ExtendedUser).userType = token.userType as string;
       }
       return session;
-    },
+    }
+  },
+  pages: {
+    signIn: '/auth/signin',
+  },
+  session: {
+    strategy: 'jwt',
   },
 };
 

@@ -1,7 +1,7 @@
-import { Providers } from './providers'
 import './globals.css'
 import { Inter } from 'next/font/google'
-import Navigation from './components/Navigation'
+import { Providers } from './providers'
+import Navigation from '@/app/components/Navigation'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -17,10 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-gray-100 text-gray-900`}>
+      <body className={inter.className}>
         <Providers>
           <Navigation />
-          <main className="min-h-screen p-4">
+          <main className="container mx-auto mt-4">
             {children}
           </main>
         </Providers>
