@@ -48,21 +48,13 @@ const UserSchema = new mongoose.Schema<IUser>({
     unique: true,
     lowercase: true,
   },
-  password: {
-    type: String,
-    required: [true, 'Please provide a password'],
-    minlength: [6, 'Password must be at least 6 characters'],
-  },
+  password: String,
   userType: {
     type: String,
     enum: ['introducer', 'vendor', 'buyer', 'unassigned'],
     default: 'unassigned',
   },
-  linkedinId: {
-    type: String,
-    unique: true,
-    sparse: true,
-  },
+  linkedinId: String,
   linkedinAccessToken: String,
   linkedinRefreshToken: String,
   linkedinTokenExpiry: Date,
@@ -71,10 +63,7 @@ const UserSchema = new mongoose.Schema<IUser>({
   company: String,
   expertise: [String],
   industries: [String],
-  successfulIntroductions: {
-    type: Number,
-    default: 0,
-  },
+  successfulIntroductions: Number,
   products: [String],
   services: [String],
   commissionRates: {
@@ -83,7 +72,7 @@ const UserSchema = new mongoose.Schema<IUser>({
   },
   requirements: [String],
   budget: Number,
-}, { timestamps: true });
+});
 
 // Index for faster queries on linkedinId and userType
 UserSchema.index({ linkedinId: 1, userType: 1 });
