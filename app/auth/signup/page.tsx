@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signIn } from 'next-auth/react';
+import LinkedInButton from '../../components/LinkedInButton';
 
 const signUpSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -18,11 +19,14 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 export default function SignUp() {
   const router = useRouter();
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
   });
 
   const onSubmit = async (data: SignUpFormData) => {
+    setIsLoading(true);
+    setError('');
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -50,6 +54,8 @@ export default function SignUp() {
     } catch (error) {
       console.error('Sign-up error:', error);
       setError(error instanceof Error ? error.message : 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -100,12 +106,26 @@ export default function SignUp() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign up
+              {isLoading ? 'Signing up...' : 'Sign up'}
             </button>
           </div>
         </form>
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+          <div className="mt-6">
+            <LinkedInButton className="w-full" />
+          </div>
+        </div>
       </div>
     </div>
   );
