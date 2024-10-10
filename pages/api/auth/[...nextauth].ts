@@ -45,6 +45,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           userType: user.userType,
+          image: user.image,
         };
       }
     }),
@@ -91,7 +92,6 @@ export const authOptions: NextAuthOptions = {
         const existingUser = await User.findOne({ email: user.email });
 
         if (existingUser) {
-          // Update existing user with LinkedIn data
           existingUser.name = user.name || '';
           existingUser.linkedinId = profile.sub;
           if (user.image) {
@@ -99,12 +99,11 @@ export const authOptions: NextAuthOptions = {
           }
           await existingUser.save();
         } else {
-          // Create new user with LinkedIn data
           const newUser = new User({
             email: user.email,
             name: user.name || '',
             linkedinId: profile.sub,
-            userType: "unassigned", // Default user type
+            userType: "unassigned",
             image: user.image,
           });
           await newUser.save();
