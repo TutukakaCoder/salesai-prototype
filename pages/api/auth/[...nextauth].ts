@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await User.findOne({ email: credentials.email }).lean();
 
-        if (!user) {
+        if (!user || !user.password) {
           return null;
         }
 
@@ -58,7 +58,7 @@ export const authOptions: NextAuthOptions = {
           response_type: 'code',
         },
       },
-      issuer: 'https://www.linkedin.com/oauth',
+      issuer: 'https://www.linkedin.com',
       jwks_endpoint: 'https://www.linkedin.com/oauth/openid/jwks',
       profile(profile) {
         return {
