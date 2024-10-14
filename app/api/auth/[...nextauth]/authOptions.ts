@@ -42,6 +42,7 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope: 'openid profile w_member_social email',
+          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/linkedin`
         },
       },
       // ... 
