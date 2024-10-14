@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -41,17 +41,18 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: 'openid profile email',
-          redirect_uri: 'https://salesai-prototype-pi.vercel.app/api/auth/callback/linkedin',
+          scope: 'openid profile email w_member_social',
         },
       },
-      profile(profile) {
-        console.log("LinkedIn profile:", profile);
+      issuer: "https://www.linkedin.com",
+      jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
+      profile(profile, tokens) {
+        const { sub, name, email, picture } = profile;
         return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
+          id: sub,
+          name,
+          email,
+          image: picture,
           userType: "unassigned" as UserType,
           onboardingCompleted: false,
         };
@@ -59,8 +60,26 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
-      console.log("SignIn callback:", { user, account, profile, email });
+    async jwt({ token, user, account }) {
+      if (account?.provider === "linkedin") {
+        token.accessToken = account.access_token;
+      }
+      if (user) {
+        token.userType = user.userType;
+        token.onboardingCompleted = user.onboardingCompleted;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.userType = token.userType as UserType;
+        session.user.onboardingCompleted = token.onboardingCompleted as boolean;
+        (session as any).accessToken = token.accessToken as string;
+      }
+      return session;
+    },
+    async signIn({ user, account, profile }) {
+      console.log("SignIn callback:", { user, account, profile });
       if (account?.provider === "linkedin") {
         try {
           await dbConnect();
@@ -86,31 +105,11 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account }) {
-      console.log("JWT callback:", { token, user, account });
-      if (user) {
-        token.userType = user.userType;
-        token.onboardingCompleted = user.onboardingCompleted;
-      }
-      if (account) {
-        token.accessToken = account.access_token;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      console.log("Session callback:", { session, token });
-      if (session.user) {
-        session.user.userType = token.userType as UserType;
-        session.user.onboardingCompleted = token.onboardingCompleted as boolean;
-        (session as any).accessToken = token.accessToken as string;
-      }
-      return session;
-    },
   },
   pages: {
     signIn: "/auth/signin",
     newUser: "/user-type-selection",
     error: "/auth/error",
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === "development",
 };
