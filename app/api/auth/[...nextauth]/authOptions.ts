@@ -42,6 +42,7 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope: 'openid profile email',
+          redirect_uri: 'https://salesai-prototype-pi.vercel.app/api/auth/callback/linkedin',
         },
       },
       profile(profile) {
