@@ -42,7 +42,6 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope: 'r_emailaddress r_liteprofile',
-          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/linkedin`,
         },
       },
       profile(profile, tokens) {
