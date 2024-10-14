@@ -41,18 +41,18 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: 'openid profile email w_member_social',
+          scope: 'openid profile email',
         },
       },
       issuer: "https://www.linkedin.com",
       jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
-      profile(profile, tokens) {
-        const { sub, name, email, picture } = profile;
+      wellKnown: "https://www.linkedin.com/.well-known/openid-configuration",
+      profile(profile) {
         return {
-          id: sub,
-          name,
-          email,
-          image: picture,
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
           userType: "unassigned" as UserType,
           onboardingCompleted: false,
         };
@@ -63,6 +63,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (account?.provider === "linkedin") {
         token.accessToken = account.access_token;
+        token.idToken = account.id_token;
       }
       if (user) {
         token.userType = user.userType;
@@ -75,6 +76,7 @@ export const authOptions: NextAuthOptions = {
         session.user.userType = token.userType as UserType;
         session.user.onboardingCompleted = token.onboardingCompleted as boolean;
         (session as any).accessToken = token.accessToken as string;
+        (session as any).idToken = token.idToken as string;
       }
       return session;
     },
@@ -111,5 +113,5 @@ export const authOptions: NextAuthOptions = {
     newUser: "/user-type-selection",
     error: "/auth/error",
   },
-  debug: process.env.NODE_ENV === "development",
+  debug: true,
 };
