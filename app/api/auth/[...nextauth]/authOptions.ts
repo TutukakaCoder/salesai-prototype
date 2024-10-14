@@ -1,17 +1,9 @@
-// File: app/api/auth/[...nextauth]/authOptions.ts
-
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import LinkedInProvider from "next-auth/providers/linkedin";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/dbConnect";
 import User, { IUser, UserType } from "@/models/User";
-import { Types } from 'mongoose';
-
-// Type guard to check if a user object has the _id property
-function isUserWithId(user: any): user is IUser & { _id: Types.ObjectId } {
-  return user && user._id && typeof user._id.toString === 'function';
-}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -21,88 +13,81 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
-
         await dbConnect();
-
-        const user = await User.findOne({ email: credentials.email });
-
+        const user = await User.findOne({ email: credentials.email }) as (IUser & { _id: any }) | null;
         if (!user || !user.password) {
           return null;
         }
-
         const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
-
         if (!isPasswordCorrect) {
           return null;
         }
-
-        if (isUserWithId(user)) {
-          return {
-            id: user._id.toString(),
-            name: user.name,
-            email: user.email,
-            userType: user.userType,
-            onboardingCompleted: user.onboardingCompleted,
-            image: user.image
-          };
-        }
-
-        return null;
+        return {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          userType: user.userType,
+          onboardingCompleted: user.onboardingCompleted,
+        };
       }
     }),
     LinkedInProvider({
       clientId: process.env.LINKEDIN_CLIENT_ID!,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
-        params: { scope: 'openid profile email' }
+        params: {
+          scope: 'r_emailaddress r_liteprofile',
+          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/linkedin`,
+        },
       },
-      profile(profile) {
+      profile(profile, tokens) {
         return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-          userType: 'unassigned' as UserType,
-          onboardingCompleted: false
+          id: profile.id,
+          name: `${profile.localizedFirstName} ${profile.localizedLastName}`,
+          email: profile.emailAddress,
+          image: profile.profilePicture?.["displayImage~"]?.elements?.[0]?.identifiers?.[0]?.identifier || null,
+          userType: "unassigned" as UserType,
+          onboardingCompleted: false,
         };
       },
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      if (account?.provider === 'linkedin') {
-        await dbConnect();
-        const existingUser = await User.findOne({ email: user.email });
-        if (!existingUser) {
-          const newUser = await User.create({
-            name: user.name,
-            email: user.email,
-            image: user.image,
-            userType: 'unassigned',
-            onboardingCompleted: false
-          });
-          if (isUserWithId(newUser)) {
-            user.id = newUser._id.toString();
-            user.userType = newUser.userType;
-            user.onboardingCompleted = newUser.onboardingCompleted;
+    async signIn({ user, account, profile, email, credentials }) {
+      if (account?.provider === "linkedin") {
+        try {
+          await dbConnect();
+          const existingUser = await User.findOne({ email: user.email });
+          if (!existingUser) {
+            const newUser = new User({
+              name: user.name,
+              email: user.email,
+              image: user.image,
+              userType: "unassigned",
+              onboardingCompleted: false,
+            });
+            await newUser.save();
           }
-        } else if (isUserWithId(existingUser)) {
-          user.id = existingUser._id.toString();
-          user.userType = existingUser.userType;
-          user.onboardingCompleted = existingUser.onboardingCompleted;
+          return true;
+        } catch (error) {
+          console.error("Error in signIn callback:", error);
+          return false;
         }
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.userType = user.userType as UserType;
-        token.onboardingCompleted = user.onboardingCompleted as boolean;
-        token.id = user.id;
+        token.userType = user.userType;
+        token.onboardingCompleted = user.onboardingCompleted;
+      }
+      if (account) {
+        token.accessToken = account.access_token;
       }
       return token;
     },
@@ -110,7 +95,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.userType = token.userType as UserType;
         session.user.onboardingCompleted = token.onboardingCompleted as boolean;
-        session.user.id = token.id as string;
+        (session as any).accessToken = token.accessToken as string;
       }
       return session;
     },
@@ -118,6 +103,7 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/auth/signin",
     newUser: "/user-type-selection",
+    error: "/auth/error",
   },
   session: {
     strategy: "jwt",
