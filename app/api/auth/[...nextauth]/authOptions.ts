@@ -41,17 +41,16 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: 'openid profile w_member_social email',
-          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/linkedin`
+          scope: 'openid profile email',
         },
       },
-      // ... 
-      profile(profile, tokens) {
+      profile(profile) {
+        console.log("LinkedIn profile:", profile);
         return {
-          id: profile.id,
-          name: `${profile.localizedFirstName} ${profile.localizedLastName}`,
-          email: profile.emailAddress,
-          image: profile.profilePicture?.["displayImage~"]?.elements?.[0]?.identifiers?.[0]?.identifier || null,
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
           userType: "unassigned" as UserType,
           onboardingCompleted: false,
         };
@@ -60,11 +59,13 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
+      console.log("SignIn callback:", { user, account, profile, email });
       if (account?.provider === "linkedin") {
         try {
           await dbConnect();
           const existingUser = await User.findOne({ email: user.email });
           if (!existingUser) {
+            console.log("Creating new user:", user);
             const newUser = new User({
               name: user.name,
               email: user.email,
@@ -73,6 +74,8 @@ export const authOptions: NextAuthOptions = {
               onboardingCompleted: false,
             });
             await newUser.save();
+          } else {
+            console.log("Existing user found:", existingUser);
           }
           return true;
         } catch (error) {
@@ -83,6 +86,7 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user, account }) {
+      console.log("JWT callback:", { token, user, account });
       if (user) {
         token.userType = user.userType;
         token.onboardingCompleted = user.onboardingCompleted;
@@ -93,6 +97,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      console.log("Session callback:", { session, token });
       if (session.user) {
         session.user.userType = token.userType as UserType;
         session.user.onboardingCompleted = token.onboardingCompleted as boolean;
@@ -105,9 +110,6 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
     newUser: "/user-type-selection",
     error: "/auth/error",
-  },
-  session: {
-    strategy: "jwt",
   },
   debug: process.env.NODE_ENV === 'development',
 };
