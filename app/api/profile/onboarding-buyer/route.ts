@@ -1,36 +1,43 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import dbConnect from '@/lib/dbConnect';
-import User from '@/models/User';
+// File: app/api/profile/onboarding-buyer/route.ts
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import dbConnect from "@/lib/dbConnect";
+import User from "@/models/User";
 
-  if (!session) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  await dbConnect();
-
+export async function POST(req: NextRequest) {
   try {
-    const data = await req.json();
-    const user = await User.findOneAndUpdate(
-      { email: session.user.email },
-      { 
-        buyerProfile: data,
-        onboardingCompleted: true
-      },
-      { new: true }
-    );
+    const session = await getServerSession(authOptions);
 
-    if (!user) {
-      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    return NextResponse.json({ message: 'Buyer onboarding completed successfully', user });
+    await dbConnect();
+
+    const { company, companySize, foundingDate, location, requirements, budget } = await req.json();
+
+    const user = await User.findOne({ email: session.user.email });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    user.company = company;
+    user.companySize = companySize;
+    user.foundingDate = new Date(foundingDate);
+    user.location = location;
+    user.requirements = requirements;
+    user.budget = budget;
+    user.userType = 'buyer';
+    user.onboardingCompleted = true;
+
+    await user.save();
+
+    return NextResponse.json({ message: 'Buyer profile updated successfully' });
   } catch (error) {
-    console.error('Error completing buyer onboarding:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error('Error updating buyer profile:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,37 +1,53 @@
+// File: models/User.ts
+
 import mongoose, { Document, Model } from 'mongoose';
 
+export type UserType = 'unassigned' | 'introducer' | 'vendor' | 'buyer';
+
 export interface IUser extends Document {
-  _id: mongoose.Types.ObjectId;
   name: string;
   email: string;
   password?: string;
-  userType: 'introducer' | 'vendor' | 'buyer' | 'unassigned';
-  linkedinId?: string;
+  userType: UserType;
   image?: string;
-  // Add other fields as needed
+  onboardingCompleted: boolean;
+  company?: string;
+  companySize?: string;
+  foundingDate?: Date;
+  location?: string;
+  requirements?: string;
+  budget?: number;
+  products?: string[];
+  services?: string[];
+  expertise?: string[];
+  industries?: string[];
+  successfulIntroductions?: number;
 }
 
 const UserSchema = new mongoose.Schema<IUser>({
-  name: {
-    type: String,
-    required: [true, 'Please provide a name'],
-    maxlength: [60, 'Name cannot be more than 60 characters'],
+  name: { type: String, required: [true, 'Please provide a name'] },
+  email: { type: String, required: [true, 'Please provide an email'], unique: true },
+  password: { type: String },
+  userType: { 
+    type: String, 
+    enum: ['unassigned', 'introducer', 'vendor', 'buyer'], 
+    default: 'unassigned' 
   },
-  email: {
-    type: String,
-    required: [true, 'Please provide an email'],
-    unique: true,
-    lowercase: true,
-  },
-  password: String,
-  userType: {
-    type: String,
-    enum: ['introducer', 'vendor', 'buyer', 'unassigned'],
-    default: 'unassigned',
-  },
-  linkedinId: String,
-  image: String,
-  // Add other fields as needed
+  image: { type: String },
+  onboardingCompleted: { type: Boolean, default: false },
+  company: { type: String },
+  companySize: { type: String },
+  foundingDate: { type: Date },
+  location: { type: String },
+  requirements: { type: String },
+  budget: { type: Number },
+  products: [{ type: String }],
+  services: [{ type: String }],
+  expertise: [{ type: String }],
+  industries: [{ type: String }],
+  successfulIntroductions: { type: Number, default: 0 },
+}, {
+  timestamps: true,
 });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

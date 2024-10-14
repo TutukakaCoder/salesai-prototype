@@ -1,28 +1,30 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import dbConnect from '@/lib/dbConnect';
-import User from '@/models/User';
+// File: app/api/user/get-user-type/route.ts
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import dbConnect from "@/lib/dbConnect";
+import User from "@/models/User";
 
-  if (!session) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  await dbConnect();
-
+export async function GET(req: NextRequest) {
   try {
-    const user = await User.findOne({ email: session.user.email });
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const user = await User.findById(session.user.id);
 
     if (!user) {
-      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     return NextResponse.json({ userType: user.userType });
   } catch (error) {
-    console.error('Error fetching user type:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error('Error getting user type:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

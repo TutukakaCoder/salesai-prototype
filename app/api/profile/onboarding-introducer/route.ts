@@ -1,36 +1,39 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import dbConnect from '@/lib/dbConnect';
-import User from '@/models/User';
+// File: app/api/profile/onboarding-introducer/route.ts
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import dbConnect from "@/lib/dbConnect";
+import User from "@/models/User";
 
-  if (!session) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  await dbConnect();
-
+export async function POST(req: NextRequest) {
   try {
-    const data = await req.json();
-    const user = await User.findOneAndUpdate(
-      { email: session.user.email },
-      { 
-        introducerProfile: data,
-        onboardingCompleted: true
-      },
-      { new: true }
-    );
+    const session = await getServerSession(authOptions);
 
-    if (!user) {
-      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    return NextResponse.json({ message: 'Introducer onboarding completed successfully', user });
+    await dbConnect();
+
+    const { expertise, industries } = await req.json();
+
+    const user = await User.findById(session.user.id);
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    user.expertise = expertise;
+    user.industries = industries;
+    user.userType = 'introducer';
+    user.onboardingCompleted = true;
+
+    await user.save();
+
+    return NextResponse.json({ message: 'Introducer profile updated successfully' });
   } catch (error) {
-    console.error('Error completing introducer onboarding:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error('Error updating introducer profile:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

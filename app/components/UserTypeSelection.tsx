@@ -1,6 +1,8 @@
+// File: app/components/UserTypeSelection.tsx
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import LoadingSpinner from './LoadingSpinner';
@@ -9,6 +11,12 @@ const UserTypeSelection: React.FC = () => {
   const router = useRouter();
   const { data: session, status, update } = useSession();
   const [selectedType, setSelectedType] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session?.user?.userType && session.user.userType !== 'unassigned') {
+      router.push('/dashboard');
+    }
+  }, [session, router]);
 
   const handleUserTypeSelection = async () => {
     if (!selectedType) return;

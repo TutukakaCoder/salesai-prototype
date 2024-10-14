@@ -1,46 +1,54 @@
+// File: app/user-type-selection/page.tsx
+
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function UserTypeSelection() {
-  const [selectedType, setSelectedType] = useState('');
-  const [error, setError] = useState('');
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const { data: session, update } = useSession();
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!selectedType) {
-      setError('Please select a user type');
-      return;
+  useEffect(() => {
+    if (status === 'authenticated') {
+      if (session?.user?.userType !== 'unassigned') {
+        router.push('/dashboard');
+      } else {
+        setIsLoading(false);
+      }
+    } else if (status === 'unauthenticated') {
+      router.push('/auth/signin');
     }
+  }, [status, session, router]);
 
+  const handleUserTypeSelection = async (userType: string) => {
+    setIsLoading(true);
     try {
       const response = await fetch('/api/user/update-type', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userType: selectedType.toLowerCase() }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userType }),
       });
 
       if (response.ok) {
-        await update({ userType: selectedType.toLowerCase() });
-        router.push('/onboarding');
+        router.push(`/onboarding/${userType}`);
       } else {
-        const data = await response.json();
-        setError(data.message || 'An error occurred while updating user type');
+        console.error('Failed to update user type');
+        setIsLoading(false);
       }
     } catch (error) {
-      setError('An error occurred while updating user type');
-      console.error('User type update error:', error);
+      console.error('Error updating user type:', error);
+      setIsLoading(false);
     }
   };
 
-  if (!session) {
-    return <div>Loading...</div>;
+  if (isLoading) {
+    return <LoadingSpinner />;
   }
 
   return (
@@ -49,41 +57,28 @@ export default function UserTypeSelection() {
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Select Your User Type</h2>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {['Introducer', 'Vendor', 'Buyer'].map((type) => (
-              <div key={type} className="flex items-center">
-                <input
-                  id={type}
-                  name="userType"
-                  type="radio"
-                  value={type}
-                  checked={selectedType === type}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                />
-                <label htmlFor={type} className="ml-3 block text-sm font-medium text-gray-700">
-                  {type}
-                </label>
-              </div>
-            ))}
-          </div>
-
-          {error && (
-            <div className="text-red-500 text-sm mt-2">
-              {error}
-            </div>
-          )}
-
-          <div>
+        <div className="mt-8 space-y-6">
+          <div className="rounded-md shadow-sm -space-y-px">
             <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              onClick={() => handleUserTypeSelection('introducer')}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Continue
+              Introducer
+            </button>
+            <button
+              onClick={() => handleUserTypeSelection('vendor')}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Vendor
+            </button>
+            <button
+              onClick={() => handleUserTypeSelection('buyer')}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Buyer
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

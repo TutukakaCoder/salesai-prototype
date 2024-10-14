@@ -1,6 +1,8 @@
+// File: app/api/user/update-type.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 
@@ -9,27 +11,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const session = await getServerSession(req, res, authOptions);
-
-  if (!session) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
   try {
-    await dbConnect();
+    const session = await getServerSession(req, res, authOptions);
 
-    const { id } = session.user as { id: string };
+    if (!session) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
     const { userType } = req.body;
 
-    const updatedUser = await User.findByIdAndUpdate(id, { userType }, { new: true });
+    await dbConnect();
 
-    if (!updatedUser) {
+    const user = await User.findById(session.user.id);
+
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.status(200).json({ message: 'User type updated successfully', user: updatedUser });
+    user.userType = userType;
+    await user.save();
+
+    return res.status(200).json({ message: 'User type updated successfully' });
   } catch (error) {
-    console.error('User type update error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Error updating user type:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 }
