@@ -44,15 +44,15 @@ export const authOptions: NextAuthOptions = {
           scope: 'openid profile email',
         },
       },
-      issuer: "https://www.linkedin.com",
-      jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
-      wellKnown: "https://www.linkedin.com/.well-known/openid-configuration",
+      token: "https://www.linkedin.com/oauth/v2/accessToken",
+      userinfo: "https://api.linkedin.com/v2/me",
+      profileUrl: "https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~digitalmediaAsset:playableStreams))",
       profile(profile) {
         return {
-          id: profile.sub,
-          name: profile.name,
+          id: profile.id,
+          name: `${profile.localizedFirstName} ${profile.localizedLastName}`,
           email: profile.email,
-          image: profile.picture,
+          image: profile.profilePicture?.["displayImage~"]?.elements[0]?.identifiers[0]?.identifier || null,
           userType: "unassigned" as UserType,
           onboardingCompleted: false,
         };
@@ -63,7 +63,6 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (account?.provider === "linkedin") {
         token.accessToken = account.access_token;
-        token.idToken = account.id_token;
       }
       if (user) {
         token.userType = user.userType;
@@ -76,7 +75,6 @@ export const authOptions: NextAuthOptions = {
         session.user.userType = token.userType as UserType;
         session.user.onboardingCompleted = token.onboardingCompleted as boolean;
         (session as any).accessToken = token.accessToken as string;
-        (session as any).idToken = token.idToken as string;
       }
       return session;
     },
