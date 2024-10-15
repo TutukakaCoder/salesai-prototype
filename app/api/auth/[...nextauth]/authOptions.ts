@@ -4,6 +4,11 @@ import LinkedInProvider from "next-auth/providers/linkedin";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/dbConnect";
 import User, { IUser, UserType } from "@/models/User";
+import { Document, Types } from 'mongoose';
+
+interface IUserDocument extends IUser, Document {
+  _id: Types.ObjectId;
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -13,12 +18,12 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
         await dbConnect();
-        const user = await User.findOne({ email: credentials.email }) as (IUser & { _id: any }) | null;
+        const user = await User.findOne({ email: credentials.email }) as IUserDocument | null;
         if (!user || !user.password) {
           return null;
         }
@@ -40,25 +45,24 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.LINKEDIN_CLIENT_ID!,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
-        params: { scope: 'openid profile email' }
+        params: { scope: "openid profile email" }
       },
-      profile(profile) {
+      issuer: "https://www.linkedin.com",
+      jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
+      async profile(profile, tokens) {
         return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          userType: "unassigned",
+          userType: "unassigned" as UserType,
           onboardingCompleted: false,
         };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
-      if (account?.provider === "linkedin") {
-        token.accessToken = account.access_token;
-      }
+    async jwt({ token, user }) {
       if (user) {
         token.userType = user.userType;
         token.onboardingCompleted = user.onboardingCompleted;
@@ -67,13 +71,12 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.userType = token.userType as UserType;
-        session.user.onboardingCompleted = token.onboardingCompleted as boolean;
-        (session as any).accessToken = token.accessToken as string;
+        (session.user as any).userType = token.userType;
+        (session.user as any).onboardingCompleted = token.onboardingCompleted;
       }
       return session;
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       if (account?.provider === "linkedin") {
         try {
           await dbConnect();

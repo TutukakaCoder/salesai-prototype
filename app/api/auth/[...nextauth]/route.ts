@@ -1,17 +1,11 @@
 import NextAuth from "next-auth";
+import { NextApiRequest, NextApiResponse } from "next";
 import { authOptions } from "./authOptions";
 
 const handler = NextAuth(authOptions);
 
-async function handleRequest(request: Request) {
-  try {
-    return await handler(request);
-  } catch (error) {
-    console.error("NextAuth Error:", error);
-    return new Response(JSON.stringify({ error: "Authentication error" }), {
-      status: 500,
-    });
-  }
+async function handleRequest(req: NextApiRequest, res: NextApiResponse) {
+  return handler(req, res);
 }
 
 export const GET = handleRequest;

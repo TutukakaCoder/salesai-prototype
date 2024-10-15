@@ -36,10 +36,9 @@ export default function UserTypeSelection() {
       });
 
       if (response.ok) {
-        router.push(`/onboarding/${userType}`);
+        router.push('/dashboard');
       } else {
-        console.error('Failed to update user type');
-        setIsLoading(false);
+        throw new Error('Failed to update user type');
       }
     } catch (error) {
       console.error('Error updating user type:', error);
