@@ -1,5 +1,3 @@
-// File: app/auth/signup/page.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -26,7 +24,17 @@ export default function SignUp() {
     });
 
     if (response.ok) {
-      router.push('/auth/signin');
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (result?.error) {
+        setError('Error signing in after registration');
+      } else {
+        router.push('/user-type-selection');
+      }
     } else {
       const data = await response.json();
       setError(data.message || 'An error occurred during sign up.');

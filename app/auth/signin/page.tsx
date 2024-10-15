@@ -1,22 +1,20 @@
-// File: app/auth/signin/page.tsx
-
 'use client';
 
+import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import Link from 'next/link';
 import LinkedInButton from '@/app/components/LinkedInButton';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
+    setError('');
 
     const result = await signIn('credentials', {
       redirect: false,
@@ -25,9 +23,9 @@ export default function SignIn() {
     });
 
     if (result?.error) {
-      setError(result.error);
+      setError('Invalid email or password');
     } else {
-      router.push('/dashboard');
+      router.push('/user-type-selection');
     }
   };
 

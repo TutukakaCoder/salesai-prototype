@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import dbConnect from '../../../../lib/dbConnect';
-import User from '../../../../models/User';
+import dbConnect from '@/lib/dbConnect';
+import User from '@/models/User';
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +23,8 @@ export async function POST(request: Request) {
       name,
       email,
       password: hashedPassword,
-      userType: 'buyer', // Default user type
+      userType: 'unassigned',
+      onboardingCompleted: false,
     });
 
     await newUser.save();

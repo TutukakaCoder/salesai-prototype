@@ -42,37 +42,13 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: { scope: 'openid profile email' }
       },
-      token: {
-        async request({ client, params, checks, provider }) {
-          const response = await client.oauthCallback(
-            provider.callbackUrl,
-            params,
-            checks,
-            { exchangeBody: { client_id: client.id, client_secret: client.secret } }
-          );
-          return { tokens: response };
-        },
-      },
-      userinfo: {
-        async request({ tokens, provider }) {
-          const { access_token } = tokens;
-          if (!access_token) throw new Error("No access token for LinkedIn");
-          const response = await fetch("https://api.linkedin.com/v2/userinfo", {
-            headers: {
-              Authorization: `Bearer ${access_token}`,
-            },
-          });
-          const data = await response.json();
-          return data;
-        },
-      },
       profile(profile) {
         return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          userType: "unassigned" as UserType,
+          userType: "unassigned",
           onboardingCompleted: false,
         };
       },
