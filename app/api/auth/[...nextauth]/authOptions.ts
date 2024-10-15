@@ -41,18 +41,30 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: 'openid profile email',
+          scope: 'openid profile w_member_social email',
         },
       },
-      token: "https://www.linkedin.com/oauth/v2/accessToken",
-      userinfo: "https://api.linkedin.com/v2/me",
-      profileUrl: "https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~digitalmediaAsset:playableStreams))",
+      token: {
+        url: "https://www.linkedin.com/oauth/v2/accessToken",
+        async request({ client, params, checks, provider }) {
+          const response = await client.oauthCallback(
+            provider.callbackUrl,
+            params,
+            checks,
+            { exchangeBody: { client_id: client.id, client_secret: client.secret } }
+          )
+          return { tokens: response }
+        },
+      },
+      userinfo: {
+        url: "https://api.linkedin.com/v2/userinfo",
+      },
       profile(profile) {
         return {
-          id: profile.id,
-          name: `${profile.localizedFirstName} ${profile.localizedLastName}`,
+          id: profile.sub,
+          name: profile.name,
           email: profile.email,
-          image: profile.profilePicture?.["displayImage~"]?.elements[0]?.identifiers[0]?.identifier || null,
+          image: profile.picture,
           userType: "unassigned" as UserType,
           onboardingCompleted: false,
         };
