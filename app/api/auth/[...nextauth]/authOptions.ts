@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -47,9 +47,7 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: { scope: "openid profile email" }
       },
-      issuer: "https://www.linkedin.com",
-      jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
-      async profile(profile, tokens) {
+      profile(profile) {
         return {
           id: profile.sub,
           name: profile.name,
