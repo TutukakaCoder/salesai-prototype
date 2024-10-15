@@ -40,24 +40,31 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.LINKEDIN_CLIENT_ID!,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
-        params: {
-          scope: 'openid profile w_member_social email',
-        },
+        params: { scope: 'openid profile email' }
       },
       token: {
-        url: "https://www.linkedin.com/oauth/v2/accessToken",
         async request({ client, params, checks, provider }) {
           const response = await client.oauthCallback(
             provider.callbackUrl,
             params,
             checks,
             { exchangeBody: { client_id: client.id, client_secret: client.secret } }
-          )
-          return { tokens: response }
+          );
+          return { tokens: response };
         },
       },
       userinfo: {
-        url: "https://api.linkedin.com/v2/userinfo",
+        async request({ tokens, provider }) {
+          const { access_token } = tokens;
+          if (!access_token) throw new Error("No access token for LinkedIn");
+          const response = await fetch("https://api.linkedin.com/v2/userinfo", {
+            headers: {
+              Authorization: `Bearer ${access_token}`,
+            },
+          });
+          const data = await response.json();
+          return data;
+        },
       },
       profile(profile) {
         return {
@@ -91,23 +98,19 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async signIn({ user, account, profile }) {
-      console.log("SignIn callback:", { user, account, profile });
       if (account?.provider === "linkedin") {
         try {
           await dbConnect();
-          const existingUser = await User.findOne({ email: user.email });
+          let existingUser = await User.findOne({ email: user.email });
           if (!existingUser) {
-            console.log("Creating new user:", user);
-            const newUser = new User({
+            existingUser = new User({
               name: user.name,
               email: user.email,
               image: user.image,
               userType: "unassigned",
               onboardingCompleted: false,
             });
-            await newUser.save();
-          } else {
-            console.log("Existing user found:", existingUser);
+            await existingUser.save();
           }
           return true;
         } catch (error) {
@@ -123,5 +126,5 @@ export const authOptions: NextAuthOptions = {
     newUser: "/user-type-selection",
     error: "/auth/error",
   },
-  debug: true,
+  debug: process.env.NODE_ENV === "development",
 };

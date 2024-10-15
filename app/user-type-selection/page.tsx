@@ -1,5 +1,3 @@
-// File: app/user-type-selection/page.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,6 +11,8 @@ export default function UserTypeSelection() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("UserTypeSelection - Session:", session);
+    console.log("UserTypeSelection - Status:", status);
     if (status === 'authenticated') {
       if (session?.user?.userType !== 'unassigned') {
         router.push('/dashboard');
