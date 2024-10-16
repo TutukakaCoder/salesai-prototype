@@ -34,7 +34,21 @@ export default function UserTypeSelection() {
       });
 
       if (response.ok) {
-        router.push('/dashboard');
+        // Redirect to the appropriate onboarding form based on user type
+        switch (userType) {
+          case 'introducer':
+            router.push('/onboarding/introducer');
+            break;
+          case 'vendor':
+            router.push('/onboarding/vendor');
+            break;
+          case 'buyer':
+            router.push('/onboarding/buyer');
+            break;
+          default:
+            console.error('Invalid user type');
+            setIsLoading(false);
+        }
       } else {
         console.error('Failed to update user type');
         setIsLoading(false);
