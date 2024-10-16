@@ -45,8 +45,10 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.LINKEDIN_CLIENT_ID!,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       authorization: {
-        params: { scope: "openid profile email" }
+        params: { scope: "r_emailaddress r_liteprofile" }
       },
+      issuer: "https://www.linkedin.com",
+      jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
       profile(profile) {
         return {
           id: profile.sub,
@@ -60,10 +62,13 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.userType = user.userType;
         token.onboardingCompleted = user.onboardingCompleted;
+      }
+      if (account && account.provider === "linkedin") {
+        token.accessToken = account.access_token;
       }
       return token;
     },
@@ -71,10 +76,11 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).userType = token.userType;
         (session.user as any).onboardingCompleted = token.onboardingCompleted;
+        (session.user as any).accessToken = token.accessToken;
       }
       return session;
     },
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider === "linkedin") {
         try {
           await dbConnect();

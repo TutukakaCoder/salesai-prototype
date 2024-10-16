@@ -7,10 +7,9 @@ const LinkedInButton = () => {
   const handleLinkedInSignIn = async () => {
     setIsLoading(true);
     try {
-      const result = await signIn('linkedin', { callbackUrl: '/user-type-selection' });
-      console.log("LinkedIn sign-in result:", result);
+      await signIn('linkedin', { callbackUrl: '/user-type-selection' });
     } catch (error) {
-      console.error("LinkedIn sign-in error:", error);
+      console.error('LinkedIn sign-in error:', error);
     } finally {
       setIsLoading(false);
     }

@@ -11,10 +11,8 @@ export default function UserTypeSelection() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log("UserTypeSelection - Session:", session);
-    console.log("UserTypeSelection - Status:", status);
     if (status === 'authenticated') {
-      if (session?.user?.userType !== 'unassigned') {
+      if (session?.user?.onboardingCompleted) {
         router.push('/dashboard');
       } else {
         setIsLoading(false);
@@ -38,7 +36,8 @@ export default function UserTypeSelection() {
       if (response.ok) {
         router.push('/dashboard');
       } else {
-        throw new Error('Failed to update user type');
+        console.error('Failed to update user type');
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error updating user type:', error);
@@ -51,13 +50,16 @@ export default function UserTypeSelection() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Select Your User Type</h2>
-        </div>
-        <div className="mt-8 space-y-6">
-          <div className="rounded-md shadow-sm -space-y-px">
+    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Select your user type
+        </h2>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <div className="space-y-6">
             <button
               onClick={() => handleUserTypeSelection('introducer')}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
